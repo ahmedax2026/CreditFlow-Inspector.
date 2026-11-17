@@ -1,0 +1,23 @@
+name: Offline OCR dependencies
+on: [push, workflow_dispatch]
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          npm install tesseract.js@6 tesseract.js-core@6 pdfjs-dist@4.10.38
+          mkdir -p offline/ocr offline/pdf offline/lang
+          cp node_modules/tesseract.js/dist/*.js offline/ocr/
+          cp node_modules/tesseract.js-core/*.wasm* offline/ocr/
+          cp node_modules/pdfjs-dist/legacy/build/*.mjs offline/pdf/
+          for lang in ara eng; do
+            curl --fail --retry 3 -L "https://raw.githubusercontent.com/tesseract-ocr/tessdata_best/main/$lang.traineddata" | gzip > "offline/lang/$lang.traineddata.gz"
+            gzip -t "offline/lang/$lang.traineddata.gz"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CreditFlow-OCR-dependencies
+          path: offline/
